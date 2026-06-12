@@ -1,0 +1,27 @@
+import random
+
+def jouer():
+    nombre_secret = random.randint(1, 100)
+    tentatives = 0
+    gagne = False
+
+    print("--- Bienvenue au jeu du juste prix ! ---")
+    print("J'ai choisi un nombre entre 1 et 100. À toi de deviner.")
+
+    while not gagne:
+        try:
+            choix = int(input("Entre ton nombre : "))
+            tentatives += 1
+
+            if choix < nombre_secret:
+                print("C'est plus grand ! 📈")
+            elif choix > nombre_secret:
+                print("C'est plus petit ! 📉")
+            else:
+                print(f"Bravo ! Tu as trouvé en {tentatives} coups. 🏆")
+                gagne = True
+        except ValueError:
+            print("Oups ! Il faut entrer un chiffre entier.")
+
+if __name__ == "__main__":
+    jouer()

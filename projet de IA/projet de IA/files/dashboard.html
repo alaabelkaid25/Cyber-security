@@ -1,0 +1,933 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CyberShield AI — Threat Detection System</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;500;600;700&family=Exo+2:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:       #050a12;
+  --bg2:      #080e1a;
+  --bg3:      #0c1424;
+  --panel:    #0e1830;
+  --border:   #1a2d4a;
+  --border2:  #1e3560;
+  --cyan:     #00e5ff;
+  --cyan2:    #00b8d9;
+  --green:    #00ff88;
+  --red:      #ff2d55;
+  --orange:   #ff6b1a;
+  --purple:   #bf5af2;
+  --yellow:   #ffd60a;
+  --text:     #c8d8f0;
+  --text2:    #7a9cc0;
+  --text3:    #3d5a7a;
+  --glow-c:   0 0 20px rgba(0,229,255,.35);
+  --glow-g:   0 0 20px rgba(0,255,136,.35);
+  --glow-r:   0 0 20px rgba(255,45,85,.45);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{font-size:14px}
+body{background:var(--bg);color:var(--text);font-family:'Exo 2',sans-serif;min-height:100vh;overflow-x:hidden}
+
+/* ── Scanline overlay ── */
+body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,229,255,.012) 2px,rgba(0,229,255,.012) 4px);pointer-events:none;z-index:9999}
+
+/* ── HEADER ── */
+header{display:flex;align-items:center;justify-content:space-between;padding:16px 28px;background:var(--bg2);border-bottom:1px solid var(--border2);position:sticky;top:0;z-index:100;backdrop-filter:blur(10px)}
+.logo{display:flex;align-items:center;gap:12px}
+.logo-icon{width:36px;height:36px;position:relative}
+.logo-icon svg{width:36px;height:36px;filter:drop-shadow(0 0 8px var(--cyan))}
+.logo-text{font-family:'Rajdhani',sans-serif;font-size:1.5rem;font-weight:700;color:var(--cyan);letter-spacing:2px;text-shadow:var(--glow-c)}
+.logo-sub{font-size:.65rem;color:var(--text2);letter-spacing:3px;font-family:'Share Tech Mono',monospace;margin-top:-2px}
+.header-right{display:flex;align-items:center;gap:20px}
+.status-live{display:flex;align-items:center;gap:7px;font-family:'Share Tech Mono',monospace;font-size:.75rem;color:var(--green);text-shadow:var(--glow-g)}
+.dot-live{width:8px;height:8px;background:var(--green);border-radius:50%;box-shadow:var(--glow-g);animation:pulse 1.4s infinite}
+.header-time{font-family:'Share Tech Mono',monospace;font-size:.78rem;color:var(--text2);letter-spacing:1px}
+.accuracy-badge{background:rgba(0,255,136,.1);border:1px solid rgba(0,255,136,.3);color:var(--green);padding:5px 14px;border-radius:4px;font-size:.75rem;font-family:'Share Tech Mono',monospace;letter-spacing:1px}
+
+/* ── LAYOUT ── */
+.app{display:grid;grid-template-columns:220px 1fr;grid-template-rows:1fr;min-height:calc(100vh - 65px)}
+
+/* ── SIDEBAR ── */
+aside{background:var(--bg2);border-right:1px solid var(--border);padding:24px 0;display:flex;flex-direction:column;gap:4px}
+.nav-section{padding:0 16px 8px;font-size:.62rem;color:var(--text3);letter-spacing:3px;font-family:'Share Tech Mono',monospace;margin-top:12px}
+.nav-item{display:flex;align-items:center;gap:10px;padding:10px 20px;cursor:pointer;transition:all .2s;color:var(--text2);font-weight:500;font-size:.85rem;border-left:2px solid transparent;position:relative}
+.nav-item:hover{color:var(--cyan);background:rgba(0,229,255,.06);border-left-color:rgba(0,229,255,.4)}
+.nav-item.active{color:var(--cyan);background:rgba(0,229,255,.1);border-left-color:var(--cyan);text-shadow:var(--glow-c)}
+.nav-item .nav-icon{font-size:1rem;width:18px;text-align:center}
+.nav-badge{margin-left:auto;background:var(--red);color:#fff;font-size:.6rem;padding:2px 6px;border-radius:10px;font-weight:700;box-shadow:var(--glow-r)}
+.sidebar-model{margin:auto 16px 0;padding:14px;background:var(--bg3);border:1px solid var(--border2);border-radius:8px}
+.model-label{font-size:.6rem;color:var(--text3);letter-spacing:2px;font-family:'Share Tech Mono',monospace;margin-bottom:6px}
+.model-name{color:var(--cyan);font-size:.8rem;font-weight:700;margin-bottom:8px}
+.model-bar-wrap{height:4px;background:var(--border);border-radius:2px;overflow:hidden}
+.model-bar{height:100%;background:linear-gradient(90deg,var(--cyan),var(--green));border-radius:2px;width:99.14%}
+.model-acc{font-family:'Share Tech Mono',monospace;font-size:.7rem;color:var(--green);margin-top:5px}
+
+/* ── MAIN ── */
+main{padding:24px;overflow-y:auto;background:var(--bg)}
+
+/* ── STAT CARDS ── */
+.stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px}
+.stat-card{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:18px 20px;position:relative;overflow:hidden;transition:border-color .3s}
+.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px}
+.stat-card.c{border-color:rgba(0,229,255,.3)} .stat-card.c::before{background:var(--cyan)}
+.stat-card.r{border-color:rgba(255,45,85,.3)}  .stat-card.r::before{background:var(--red)}
+.stat-card.g{border-color:rgba(0,255,136,.3)}  .stat-card.g::before{background:var(--green)}
+.stat-card.y{border-color:rgba(255,214,10,.3)} .stat-card.y::before{background:var(--yellow)}
+.stat-label{font-size:.65rem;letter-spacing:2px;color:var(--text2);font-family:'Share Tech Mono',monospace;margin-bottom:8px;text-transform:uppercase}
+.stat-value{font-family:'Rajdhani',sans-serif;font-size:2.4rem;font-weight:700;line-height:1;margin-bottom:4px}
+.stat-card.c .stat-value{color:var(--cyan);text-shadow:var(--glow-c)}
+.stat-card.r .stat-value{color:var(--red);text-shadow:var(--glow-r)}
+.stat-card.g .stat-value{color:var(--green);text-shadow:var(--glow-g)}
+.stat-card.y .stat-value{color:var(--yellow)}
+.stat-sub{font-size:.7rem;color:var(--text3);font-family:'Share Tech Mono',monospace}
+.stat-icon{position:absolute;right:16px;top:50%;transform:translateY(-50%);font-size:2rem;opacity:.15}
+
+/* ── GRID 2 COLS ── */
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px}
+.grid3{display:grid;grid-template-columns:2fr 1fr;gap:16px;margin-bottom:24px}
+
+/* ── PANEL ── */
+.panel{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:20px}
+.panel-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.panel-title{font-family:'Rajdhani',sans-serif;font-weight:700;font-size:1rem;color:var(--cyan);letter-spacing:1px;text-transform:uppercase;display:flex;align-items:center;gap:8px}
+.panel-title .dot{width:6px;height:6px;background:var(--cyan);border-radius:50%;box-shadow:var(--glow-c)}
+
+/* ── CHART ── */
+.chart-area{height:160px;display:flex;align-items:flex-end;gap:6px;padding:8px 0}
+.bar-wrap{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;height:100%}
+.bar{width:100%;background:linear-gradient(180deg,var(--cyan) 0%,rgba(0,229,255,.3) 100%);border-radius:3px 3px 0 0;min-height:4px;transition:height .8s cubic-bezier(.34,1.56,.64,1);position:relative;cursor:pointer}
+.bar:hover{filter:brightness(1.3);box-shadow:var(--glow-c)}
+.bar-val{font-family:'Share Tech Mono',monospace;font-size:.6rem;color:var(--cyan);position:absolute;top:-16px;left:50%;transform:translateX(-50%);white-space:nowrap}
+.bar-label{font-size:.6rem;color:var(--text3);font-family:'Share Tech Mono',monospace;margin-top:4px}
+
+/* ── DONUT ── */
+.donut-wrap{display:flex;align-items:center;gap:20px}
+.donut-svg{flex-shrink:0}
+.donut-legend{display:flex;flex-direction:column;gap:8px;flex:1}
+.legend-item{display:flex;align-items:center;gap:8px;font-size:.75rem}
+.legend-dot{width:10px;height:10px;border-radius:2px;flex-shrink:0}
+.legend-name{color:var(--text2);flex:1}
+.legend-pct{color:var(--text);font-family:'Share Tech Mono',monospace;font-weight:600}
+
+/* ── ALERT TABLE ── */
+.alert-table{width:100%;border-collapse:collapse}
+.alert-table th{text-align:left;padding:8px 12px;font-size:.62rem;color:var(--text3);letter-spacing:2px;font-family:'Share Tech Mono',monospace;border-bottom:1px solid var(--border);text-transform:uppercase}
+.alert-table td{padding:10px 12px;border-bottom:1px solid rgba(26,45,74,.5);font-size:.8rem;vertical-align:middle}
+.alert-table tr:hover td{background:rgba(0,229,255,.04)}
+.badge{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:4px;font-size:.68rem;font-weight:700;font-family:'Share Tech Mono',monospace;letter-spacing:.5px}
+.badge.critical{background:rgba(255,45,85,.15);color:var(--red);border:1px solid rgba(255,45,85,.3)}
+.badge.high    {background:rgba(255,107,26,.15);color:var(--orange);border:1px solid rgba(255,107,26,.3)}
+.badge.medium  {background:rgba(255,214,10,.15);color:var(--yellow);border:1px solid rgba(255,214,10,.3)}
+.badge.none    {background:rgba(0,255,136,.15);color:var(--green);border:1px solid rgba(0,255,136,.3)}
+.ip-text{font-family:'Share Tech Mono',monospace;font-size:.75rem;color:var(--cyan)}
+.conf-bar{display:flex;align-items:center;gap:6px}
+.conf-track{width:60px;height:4px;background:var(--border);border-radius:2px;overflow:hidden}
+.conf-fill{height:100%;background:var(--green);border-radius:2px}
+.conf-num{font-family:'Share Tech Mono',monospace;font-size:.68rem;color:var(--text2)}
+.btn-block{background:rgba(255,45,85,.15);border:1px solid rgba(255,45,85,.4);color:var(--red);padding:4px 10px;border-radius:4px;cursor:pointer;font-size:.68rem;font-family:'Share Tech Mono',monospace;transition:all .2s;letter-spacing:1px}
+.btn-block:hover{background:rgba(255,45,85,.3);box-shadow:var(--glow-r)}
+.btn-block.blocked{background:rgba(0,255,136,.1);border-color:rgba(0,255,136,.3);color:var(--green);cursor:default}
+.filter-tabs{display:flex;gap:6px}
+.ftab{background:transparent;border:1px solid var(--border);color:var(--text2);padding:5px 12px;border-radius:4px;cursor:pointer;font-size:.72rem;font-family:'Rajdhani',sans-serif;font-weight:600;transition:all .2s;letter-spacing:.5px}
+.ftab:hover,.ftab.active{border-color:var(--cyan);color:var(--cyan);background:rgba(0,229,255,.08)}
+
+/* ── ANALYZE PANEL ── */
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
+.form-group{display:flex;flex-direction:column;gap:5px}
+.form-label{font-size:.65rem;color:var(--text2);letter-spacing:1.5px;font-family:'Share Tech Mono',monospace;text-transform:uppercase}
+.form-input{background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:6px;font-family:'Share Tech Mono',monospace;font-size:.8rem;transition:border-color .2s;outline:none;width:100%}
+.form-input:focus{border-color:var(--cyan);box-shadow:0 0 0 2px rgba(0,229,255,.1)}
+.form-select{background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:6px;font-family:'Share Tech Mono',monospace;font-size:.8rem;width:100%;outline:none;cursor:pointer}
+.form-select:focus{border-color:var(--cyan)}
+.btn-analyze{background:linear-gradient(135deg,var(--cyan),var(--cyan2));color:#050a12;border:none;padding:11px 28px;border-radius:6px;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:.95rem;cursor:pointer;letter-spacing:1px;transition:all .2s;text-transform:uppercase}
+.btn-analyze:hover{box-shadow:var(--glow-c);transform:translateY(-1px)}
+.btn-simulate{background:linear-gradient(135deg,var(--red),#c0392b);color:#fff;border:none;padding:11px 20px;border-radius:6px;font-family:'Rajdhani',sans-serif;font-weight:700;font-size:.95rem;cursor:pointer;letter-spacing:1px;transition:all .2s;text-transform:uppercase}
+.btn-simulate:hover{box-shadow:var(--glow-r);transform:translateY(-1px)}
+.btn-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.sim-select{background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:10px 12px;border-radius:6px;font-family:'Share Tech Mono',monospace;font-size:.8rem;outline:none;cursor:pointer}
+
+/* ── RESULT BOX ── */
+.result-box{background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:16px;margin-top:14px;display:none}
+.result-box.show{display:block;animation:fadeIn .3s ease}
+.result-header{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+.result-pred{font-family:'Rajdhani',sans-serif;font-size:1.5rem;font-weight:700}
+.result-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.result-item{background:var(--panel);border-radius:6px;padding:10px}
+.result-key{font-size:.6rem;color:var(--text3);letter-spacing:2px;font-family:'Share Tech Mono',monospace;margin-bottom:4px}
+.result-val{font-family:'Share Tech Mono',monospace;font-size:.85rem;font-weight:600}
+.prob-bars{margin-top:12px}
+.prob-row{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.prob-name{font-size:.7rem;color:var(--text2);width:70px;font-family:'Share Tech Mono',monospace}
+.prob-track{flex:1;height:6px;background:var(--border);border-radius:3px;overflow:hidden}
+.prob-fill{height:100%;border-radius:3px;transition:width .6s ease}
+.prob-pct{font-size:.68rem;color:var(--text);font-family:'Share Tech Mono',monospace;width:40px;text-align:right}
+
+/* ── FEATURE IMPORTANCE ── */
+.feat-grid{display:flex;flex-direction:column;gap:8px}
+.feat-row{display:flex;align-items:center;gap:10px}
+.feat-name{font-size:.7rem;color:var(--text2);width:120px;font-family:'Share Tech Mono',monospace;text-overflow:ellipsis;overflow:hidden;white-space:nowrap}
+.feat-track{flex:1;height:8px;background:var(--border);border-radius:4px;overflow:hidden}
+.feat-fill{height:100%;background:linear-gradient(90deg,var(--cyan),var(--green));border-radius:4px}
+.feat-val{font-size:.68rem;color:var(--cyan);font-family:'Share Tech Mono',monospace;width:40px;text-align:right}
+
+/* ── TOAST ── */
+#toast{position:fixed;top:80px;right:24px;z-index:9000;display:flex;flex-direction:column;gap:8px}
+.toast-item{background:var(--panel);border:1px solid var(--border2);border-radius:8px;padding:12px 16px;min-width:280px;display:flex;align-items:center;gap:10px;animation:slideIn .3s ease;box-shadow:0 8px 32px rgba(0,0,0,.5)}
+.toast-icon{font-size:1.1rem}
+.toast-msg{font-size:.8rem;flex:1}
+.toast-item.t-critical{border-left:3px solid var(--red)}
+.toast-item.t-high{border-left:3px solid var(--orange)}
+.toast-item.t-medium{border-left:3px solid var(--yellow)}
+.toast-item.t-ok{border-left:3px solid var(--green)}
+
+/* ── RADAR ── */
+.radar-canvas{display:block;margin:0 auto}
+
+/* ── ANIMATIONS ── */
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@keyframes slideIn{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:translateX(0)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading{display:inline-block;width:16px;height:16px;border:2px solid var(--border);border-top-color:var(--cyan);border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:6px}
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar{width:6px}
+::-webkit-scrollbar-track{background:var(--bg2)}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:var(--cyan)}
+
+/* ── SECTIONS ── */
+.section{display:none}
+.section.active{display:block}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="logo">
+    <div class="logo-icon">
+      <svg viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M18 2L4 8v10c0 8.5 6 16.5 14 19 8-2.5 14-10.5 14-19V8L18 2z" stroke="#00e5ff" stroke-width="1.5" fill="rgba(0,229,255,.08)"/>
+        <path d="M12 18l4 4 8-8" stroke="#00ff88" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle cx="18" cy="18" r="3" fill="rgba(0,229,255,.3)"/>
+      </svg>
+    </div>
+    <div>
+      <div class="logo-text">CYBERSHIELD<span style="color:var(--green)"> AI</span></div>
+      <div class="logo-sub">THREAT DETECTION SYSTEM v2.0</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="status-live"><div class="dot-live"></div>SYSTÈME ACTIF</div>
+    <div class="accuracy-badge">PRÉCISION IA : 99.14%</div>
+    <div class="header-time" id="clock">--:--:--</div>
+  </div>
+</header>
+
+<div class="app">
+<!-- SIDEBAR -->
+<aside>
+  <div class="nav-section">NAVIGATION</div>
+  <div class="nav-item active" onclick="showSection('dashboard',this)"><span class="nav-icon">⬡</span>Dashboard</div>
+  <div class="nav-item" onclick="showSection('analyze',this)"><span class="nav-icon">◈</span>Analyser</div>
+  <div class="nav-item" onclick="showSection('alerts',this)"><span class="nav-icon">◉</span>Alertes<span class="nav-badge" id="nb-badge">0</span></div>
+  <div class="nav-item" onclick="showSection('model',this)"><span class="nav-icon">◫</span>Modèle IA</div>
+
+  <div class="sidebar-model">
+    <div class="model-label">MODÈLE ACTIF</div>
+    <div class="model-name">Random Forest</div>
+    <div class="model-bar-wrap"><div class="model-bar"></div></div>
+    <div class="model-acc">Accuracy : 99.14%</div>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<main>
+
+<!-- ── DASHBOARD ── -->
+<div class="section active" id="s-dashboard">
+
+  <div class="stat-grid">
+    <div class="stat-card c">
+      <div class="stat-label">Total Alertes</div>
+      <div class="stat-value" id="st-total">—</div>
+      <div class="stat-sub">Depuis le démarrage</div>
+      <div class="stat-icon">🛡</div>
+    </div>
+    <div class="stat-card r">
+      <div class="stat-label">Critiques (DoS)</div>
+      <div class="stat-value" id="st-critical">—</div>
+      <div class="stat-sub">Niveau maximum</div>
+      <div class="stat-icon">⚠</div>
+    </div>
+    <div class="stat-card g">
+      <div class="stat-label">Confiance IA Moy.</div>
+      <div class="stat-value" id="st-conf">—</div>
+      <div class="stat-sub">Niveau de certitude</div>
+      <div class="stat-icon">◎</div>
+    </div>
+    <div class="stat-card y">
+      <div class="stat-label">Dernières 24h</div>
+      <div class="stat-value" id="st-24h">—</div>
+      <div class="stat-sub">Attaques récentes</div>
+      <div class="stat-icon">⏱</div>
+    </div>
+  </div>
+
+  <div class="grid3">
+    <!-- Graphique tendance -->
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title"><div class="dot"></div>TENDANCE — 7 DERNIERS JOURS</div>
+      </div>
+      <div class="chart-area" id="trend-chart"></div>
+    </div>
+
+    <!-- Donut types -->
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title"><div class="dot"></div>TYPES D'ATTAQUES</div>
+      </div>
+      <div class="donut-wrap">
+        <svg class="donut-svg" width="100" height="100" viewBox="0 0 100 100" id="donut-svg">
+          <circle cx="50" cy="50" r="35" fill="none" stroke="var(--border)" stroke-width="18"/>
+        </svg>
+        <div class="donut-legend" id="donut-legend"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Dernières alertes -->
+  <div class="panel">
+    <div class="panel-header">
+      <div class="panel-title"><div class="dot"></div>DERNIÈRES ALERTES DÉTECTÉES</div>
+      <div style="display:flex;gap:8px">
+        <button class="btn-simulate" onclick="showSection('analyze',document.querySelector('[onclick*=analyze]'))" style="padding:6px 14px;font-size:.75rem">+ SIMULER</button>
+      </div>
+    </div>
+    <table class="alert-table">
+      <thead><tr>
+        <th>#</th><th>Horodatage</th><th>IP Source</th>
+        <th>Type</th><th>Sévérité</th><th>Confiance</th><th>Connexions</th>
+      </tr></thead>
+      <tbody id="dash-alerts"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ── ANALYSER ── -->
+<div class="section" id="s-analyze">
+  <div class="panel" style="margin-bottom:16px">
+    <div class="panel-header">
+      <div class="panel-title"><div class="dot"></div>ANALYSER UNE CONNEXION RÉSEAU</div>
+    </div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label class="form-label">Durée (secondes)</label>
+        <input class="form-input" id="f-duration" type="number" step="0.01" value="2.5" placeholder="ex: 2.5">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Protocole</label>
+        <select class="form-select" id="f-protocol">
+          <option value="0">TCP</option>
+          <option value="1">UDP</option>
+          <option value="2">ICMP</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Octets envoyés</label>
+        <input class="form-input" id="f-bytes-sent" type="number" value="500" placeholder="ex: 500">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Octets reçus</label>
+        <input class="form-input" id="f-bytes-recv" type="number" value="1200" placeholder="ex: 1200">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Nb connexions simultanées</label>
+        <input class="form-input" id="f-nb-conn" type="number" value="4" placeholder="ex: 4">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Taux d'erreur (0.0 – 1.0)</label>
+        <input class="form-input" id="f-error" type="number" step="0.01" value="0.02" placeholder="ex: 0.02">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Même IP (count)</label>
+        <input class="form-input" id="f-same-ip" type="number" value="2" placeholder="ex: 2">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Port destination</label>
+        <select class="form-select" id="f-port">
+          <option value="80">80 (HTTP)</option>
+          <option value="443">443 (HTTPS)</option>
+          <option value="22">22 (SSH)</option>
+          <option value="21">21 (FTP)</option>
+          <option value="3389">3389 (RDP)</option>
+          <option value="4444">4444 (Suspect)</option>
+          <option value="1337">1337 (Malware C&C)</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn-analyze" onclick="analyzeManual()">🔍 ANALYSER</button>
+      <div style="color:var(--text3);font-size:.75rem">— ou —</div>
+      <select class="sim-select" id="sim-type">
+        <option value="normal">Trafic Normal</option>
+        <option value="dos">Attaque DoS</option>
+        <option value="intrusion">Intrusion</option>
+        <option value="malware">Malware</option>
+        <option value="phishing">Phishing</option>
+        <option value="random">Aléatoire</option>
+      </select>
+      <button class="btn-simulate" onclick="simulateAttack()">⚡ SIMULER</button>
+    </div>
+
+    <div class="result-box" id="result-box">
+      <div class="result-header">
+        <div class="result-pred" id="r-pred">—</div>
+        <div id="r-badge"></div>
+        <div id="r-anomaly" style="font-size:.7rem;color:var(--text2);margin-left:8px"></div>
+      </div>
+      <div class="result-grid">
+        <div class="result-item">
+          <div class="result-key">CONFIANCE</div>
+          <div class="result-val" id="r-conf">—</div>
+        </div>
+        <div class="result-item">
+          <div class="result-key">SÉVÉRITÉ</div>
+          <div class="result-val" id="r-sev">—</div>
+        </div>
+        <div class="result-item">
+          <div class="result-key">ANOMALIE ISO</div>
+          <div class="result-val" id="r-iso">—</div>
+        </div>
+      </div>
+      <div class="prob-bars" id="r-probs"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ── ALERTES ── -->
+<div class="section" id="s-alerts">
+  <div class="panel">
+    <div class="panel-header">
+      <div class="panel-title"><div class="dot"></div>JOURNAL DES ALERTES</div>
+      <div class="filter-tabs">
+        <button class="ftab active" onclick="filterAlerts('all',this)">Tous</button>
+        <button class="ftab" onclick="filterAlerts('DoS',this)">DoS</button>
+        <button class="ftab" onclick="filterAlerts('Intrusion',this)">Intrusion</button>
+        <button class="ftab" onclick="filterAlerts('Malware',this)">Malware</button>
+        <button class="ftab" onclick="filterAlerts('Phishing',this)">Phishing</button>
+      </div>
+    </div>
+    <table class="alert-table">
+      <thead><tr>
+        <th>#ID</th><th>Horodatage</th><th>IP Source</th>
+        <th>Type d'attaque</th><th>Sévérité</th><th>Confiance</th>
+        <th>Nb Conn.</th><th>Protocole</th><th>Action</th>
+      </tr></thead>
+      <tbody id="full-alerts"></tbody>
+    </table>
+    <div style="margin-top:12px;color:var(--text3);font-size:.7rem;font-family:'Share Tech Mono',monospace" id="alert-count"></div>
+  </div>
+</div>
+
+<!-- ── MODÈLE ── -->
+<div class="section" id="s-model">
+  <div class="grid2">
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title"><div class="dot"></div>INFORMATIONS DU MODÈLE</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:14px">
+          <div style="font-size:.62rem;color:var(--text3);letter-spacing:2px;font-family:'Share Tech Mono',monospace;margin-bottom:6px">ALGORITHME PRINCIPAL</div>
+          <div style="color:var(--cyan);font-size:1.1rem;font-family:'Rajdhani',sans-serif;font-weight:700">Random Forest Classifier</div>
+          <div style="color:var(--text2);font-size:.75rem;margin-top:4px">150 arbres de décision — Max depth: 12 — Class-balanced</div>
+        </div>
+        <div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:14px">
+          <div style="font-size:.62rem;color:var(--text3);letter-spacing:2px;font-family:'Share Tech Mono',monospace;margin-bottom:6px">ALGORITHME SECONDAIRE</div>
+          <div style="color:var(--purple);font-size:1.1rem;font-family:'Rajdhani',sans-serif;font-weight:700">Isolation Forest</div>
+          <div style="color:var(--text2);font-size:.75rem;margin-top:4px">100 estimateurs — Détection d'anomalies inconnues (zero-day)</div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <div style="background:var(--bg3);border:1px solid rgba(0,255,136,.3);border-radius:8px;padding:14px;text-align:center">
+            <div style="font-size:.62rem;color:var(--text3);letter-spacing:2px;font-family:'Share Tech Mono',monospace;margin-bottom:4px">ACCURACY</div>
+            <div style="font-family:'Rajdhani',sans-serif;font-size:2rem;font-weight:700;color:var(--green)">99.14%</div>
+          </div>
+          <div style="background:var(--bg3);border:1px solid rgba(0,229,255,.3);border-radius:8px;padding:14px;text-align:center">
+            <div style="font-size:.62rem;color:var(--text3);letter-spacing:2px;font-family:'Share Tech Mono',monospace;margin-bottom:4px">DATASET</div>
+            <div style="font-family:'Rajdhani',sans-serif;font-size:2rem;font-weight:700;color:var(--cyan)">3500</div>
+            <div style="font-size:.65rem;color:var(--text2);font-family:'Share Tech Mono',monospace">enregistrements</div>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:12px;text-align:center">
+            <div style="font-size:.62rem;color:var(--text3);letter-spacing:2px;font-family:'Share Tech Mono',monospace;margin-bottom:4px">TRAIN SET</div>
+            <div style="font-family:'Rajdhani',sans-serif;font-size:1.4rem;font-weight:700;color:var(--text)">2800</div>
+            <div style="font-size:.65rem;color:var(--text2)">80%</div>
+          </div>
+          <div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:12px;text-align:center">
+            <div style="font-size:.62rem;color:var(--text3);letter-spacing:2px;font-family:'Share Tech Mono',monospace;margin-bottom:4px">TEST SET</div>
+            <div style="font-family:'Rajdhani',sans-serif;font-size:1.4rem;font-weight:700;color:var(--text)">700</div>
+            <div style="font-size:.65rem;color:var(--text2)">20%</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title"><div class="dot"></div>IMPORTANCE DES CARACTÉRISTIQUES</div>
+      </div>
+      <div class="feat-grid" id="feat-importance"></div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-header">
+      <div class="panel-title"><div class="dot"></div>PERFORMANCES PAR CLASSE</div>
+    </div>
+    <table class="alert-table">
+      <thead><tr>
+        <th>Classe</th><th>Précision</th><th>Rappel</th><th>F1-Score</th><th>Support</th>
+      </tr></thead>
+      <tbody>
+        <tr><td style="color:var(--green)">Normal</td><td>99%</td><td>100%</td><td>99%</td><td>400</td></tr>
+        <tr><td style="color:var(--red)">DoS</td><td>100%</td><td>100%</td><td>100%</td><td>75</td></tr>
+        <tr><td style="color:var(--orange)">Intrusion</td><td>99%</td><td>93%</td><td>96%</td><td>75</td></tr>
+        <tr><td style="color:var(--purple)">Malware</td><td>100%</td><td>100%</td><td>100%</td><td>75</td></tr>
+        <tr><td style="color:var(--yellow)">Phishing</td><td>100%</td><td>100%</td><td>100%</td><td>75</td></tr>
+        <tr style="border-top:1px solid var(--border2)"><td style="font-weight:700">Macro avg</td><td>99%</td><td>99%</td><td>99%</td><td>700</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="panel" style="margin-top:16px">
+    <div class="panel-header">
+      <div class="panel-title"><div class="dot"></div>CHAÎNE DIKW — PRINCIPE DU SYSTÈME</div>
+    </div>
+    <div style="display:flex;gap:0;align-items:stretch">
+      <div style="flex:1;background:rgba(0,229,255,.08);border:1px solid rgba(0,229,255,.3);border-radius:8px 0 0 8px;padding:16px;text-align:center">
+        <div style="font-size:1.4rem;margin-bottom:6px">📥</div>
+        <div style="color:var(--cyan);font-weight:700;font-family:'Rajdhani',sans-serif;font-size:.95rem;letter-spacing:1px">DONNÉE</div>
+        <div style="font-size:.7rem;color:var(--text2);margin-top:6px">Trafic réseau brut<br>IP, ports, octets</div>
+      </div>
+      <div style="width:30px;display:flex;align-items:center;justify-content:center;color:var(--text3);font-size:1.2rem">→</div>
+      <div style="flex:1;background:rgba(0,229,255,.05);border:1px solid var(--border2);padding:16px;text-align:center">
+        <div style="font-size:1.4rem;margin-bottom:6px">🔄</div>
+        <div style="color:var(--cyan);font-weight:700;font-family:'Rajdhani',sans-serif;font-size:.95rem;letter-spacing:1px">INFORMATION</div>
+        <div style="font-size:.7rem;color:var(--text2);margin-top:6px">Données contextualisées<br>Preprocessing / Normalisation</div>
+      </div>
+      <div style="width:30px;display:flex;align-items:center;justify-content:center;color:var(--text3);font-size:1.2rem">→</div>
+      <div style="flex:1;background:rgba(0,255,136,.05);border:1px solid rgba(0,255,136,.2);padding:16px;text-align:center">
+        <div style="font-size:1.4rem;margin-bottom:6px">🧠</div>
+        <div style="color:var(--green);font-weight:700;font-family:'Rajdhani',sans-serif;font-size:.95rem;letter-spacing:1px">SAVOIR</div>
+        <div style="font-size:.7rem;color:var(--text2);margin-top:6px">Pattern reconnu<br>Modèle Random Forest</div>
+      </div>
+      <div style="width:30px;display:flex;align-items:center;justify-content:center;color:var(--text3);font-size:1.2rem">→</div>
+      <div style="flex:1;background:rgba(255,45,85,.08);border:1px solid rgba(255,45,85,.3);border-radius:0 8px 8px 0;padding:16px;text-align:center">
+        <div style="font-size:1.4rem;margin-bottom:6px">⚡</div>
+        <div style="color:var(--red);font-weight:700;font-family:'Rajdhani',sans-serif;font-size:.95rem;letter-spacing:1px">DÉCISION</div>
+        <div style="font-size:.7rem;color:var(--text2);margin-top:6px">Alerte automatique<br>Blocage IP</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</main>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ══════════════════════════════════════════════════════
+//  SIMULATION ENGINE (Machine Learning intégré en JS)
+// ══════════════════════════════════════════════════════
+const LABELS = {0:"Normal",1:"DoS",2:"Intrusion",3:"Malware",4:"Phishing"};
+const SEVERITY = {"Normal":"none","DoS":"critical","Intrusion":"high","Malware":"high","Phishing":"medium"};
+const SEV_COLOR = {"none":"var(--green)","critical":"var(--red)","high":"var(--orange)","medium":"var(--yellow)"};
+const ATK_COLOR = {"Normal":"#22c55e","DoS":"#ef4444","Intrusion":"#f97316","Malware":"#a855f7","Phishing":"#eab308"};
+
+const FEAT_IMPORTANCE = {
+  "nb_connections":0.31,"same_ip_count":0.22,"error_rate":0.18,
+  "bytes_sent":0.11,"bytes_received":0.08,"port_number":0.05,
+  "duration":0.03,"protocol_type":0.02
+};
+
+const ATTACK_PROFILES = {
+  normal:    [2.5,0,480,1100,4,0.02,2,443],
+  dos:       [0.05,0,45,90,850,0.72,600,80],
+  intrusion: [22,0,310,750,2,0.35,1,22],
+  malware:   [31.5,1,195,200,12,0.15,9,4444],
+  phishing:  [4.8,0,1950,4900,18,0.08,6,80],
+};
+
+function mlPredict(feat) {
+  // Rule-based ML simulation (mirrors the trained Random Forest logic)
+  const [dur, prot, bsent, brecv, nbconn, err, sameip, port] = feat;
+  const probs = [0,0,0,0,0];
+
+  // DoS: massive connections, low duration, high error
+  probs[1] = Math.min(1, (nbconn/1000)*0.6 + (sameip/500)*0.3 + err*0.1);
+  // Intrusion: specific ports, moderate conn, long duration
+  const intrusionPorts = [22,23,3389,1433,21];
+  probs[2] = Math.min(1, (intrusionPorts.includes(port)?0.5:0) + (dur>10?0.3:0) + (err>0.2?0.2:0));
+  // Malware: suspicious ports, periodic traffic
+  const malwarePorts = [4444,1337,6667,8888];
+  probs[3] = Math.min(1, (malwarePorts.includes(port)?0.6:0) + (Math.abs(bsent-brecv)<50?0.2:0) + (dur>25?0.2:0));
+  // Phishing: large data, normal ports, many connections
+  probs[4] = Math.min(1, (bsent>1500?0.4:0) + (nbconn>10?0.3:0) + ([80,443].includes(port)?0.1:0));
+  // Normal: remainder
+  probs[0] = Math.max(0, 1 - probs[1] - probs[2] - probs[3] - probs[4]);
+
+  // Normalize
+  const sum = probs.reduce((a,b)=>a+b,0);
+  const norm = probs.map(p=>p/sum);
+  const pred = norm.indexOf(Math.max(...norm));
+  return {pred, probs:norm, label:LABELS[pred], conf:norm[pred]};
+}
+
+// ══════════════════════════════════════════════════════
+//  STATE
+// ══════════════════════════════════════════════════════
+let alertsDB = [];
+let nextId = 1;
+const IPS = Array.from({length:30},()=>`192.168.${rnd(1,5)}.${rnd(1,254)}`).concat(
+  ["203.0.113.45","198.51.100.12","185.220.101.56","45.33.32.156","91.108.4.0"]
+);
+
+function rnd(a,b){return Math.floor(Math.random()*(b-a+1))+a;}
+function rndF(a,b){return +(Math.random()*(b-a)+a).toFixed(3);}
+function randIP(){return IPS[rnd(0,IPS.length-1)];}
+
+// Seed 7 days history
+function seedHistory(){
+  const types = ["dos","intrusion","malware","phishing"];
+  const now = Date.now();
+  for(let d=7;d>0;d--){
+    const base = now - d*86400000;
+    const n = rnd(8,25);
+    for(let i=0;i<n;i++){
+      const t = types[rnd(0,3)];
+      const feat = [...ATTACK_PROFILES[t]].map((v,i)=>v*(1+rndF(-0.1,0.1)));
+      const {pred,probs,label,conf} = mlPredict(feat);
+      const dt = new Date(base + rnd(0,86399)*1000);
+      alertsDB.push({
+        id:nextId++,
+        timestamp:dt.toISOString().slice(0,19).replace('T',' '),
+        ip_source:randIP(), attack_type:label,
+        severity:SEVERITY[label], confidence:+conf.toFixed(3),
+        bytes_sent:+feat[2].toFixed(1), nb_conn:Math.round(feat[4]),
+        protocol:['TCP','UDP','ICMP'][Math.round(feat[1])%3], blocked:0
+      });
+    }
+  }
+  alertsDB.sort((a,b)=>b.id-a.id);
+}
+
+seedHistory();
+
+// ══════════════════════════════════════════════════════
+//  STATS
+// ══════════════════════════════════════════════════════
+function getStats(){
+  const total = alertsDB.length;
+  const critical = alertsDB.filter(a=>a.severity==='critical').length;
+  const yesterday = new Date(Date.now()-86400000).toISOString().slice(0,19).replace('T',' ');
+  const last24h = alertsDB.filter(a=>a.timestamp>=yesterday).length;
+  const avgConf = alertsDB.reduce((s,a)=>s+a.confidence,0)/total*100 || 0;
+
+  const byType = {};
+  alertsDB.forEach(a=>{byType[a.attack_type]=(byType[a.attack_type]||0)+1;});
+
+  const daily = {};
+  alertsDB.forEach(a=>{
+    const day = a.timestamp.slice(0,10);
+    daily[day]=(daily[day]||0)+1;
+  });
+
+  return {total,critical,last24h,avgConf:avgConf.toFixed(1),byType,daily};
+}
+
+// ══════════════════════════════════════════════════════
+//  RENDER
+// ══════════════════════════════════════════════════════
+function renderStats(){
+  const s = getStats();
+  document.getElementById('st-total').textContent = s.total;
+  document.getElementById('st-critical').textContent = s.critical;
+  document.getElementById('st-conf').textContent = s.avgConf+'%';
+  document.getElementById('st-24h').textContent = s.last24h;
+  document.getElementById('nb-badge').textContent = s.last24h;
+}
+
+function renderTrendChart(){
+  const s = getStats();
+  const daily = s.daily;
+  const days = Object.keys(daily).sort().slice(-7);
+  const vals = days.map(d=>daily[d]||0);
+  const mx = Math.max(...vals,1);
+  const el = document.getElementById('trend-chart');
+  el.innerHTML = '';
+  days.forEach((day,i)=>{
+    const pct = (vals[i]/mx)*100;
+    const label = day.slice(5);
+    el.innerHTML += `
+      <div class="bar-wrap" style="justify-content:flex-end">
+        <div class="bar" style="height:${pct}%;position:relative;background:linear-gradient(180deg,${vals[i]>15?'var(--red)':'var(--cyan)'} 0%,rgba(0,229,255,.2) 100%)">
+          <span class="bar-val">${vals[i]}</span>
+        </div>
+        <div class="bar-label">${label}</div>
+      </div>`;
+  });
+}
+
+function renderDonut(){
+  const s = getStats();
+  const byType = s.byType;
+  const total = Object.values(byType).reduce((a,b)=>a+b,0)||1;
+  const colors = {"DoS":"#ef4444","Intrusion":"#f97316","Malware":"#a855f7","Phishing":"#eab308","Normal":"#22c55e","Anomalie":"#00e5ff"};
+
+  const svg = document.getElementById('donut-svg');
+  svg.innerHTML = '<circle cx="50" cy="50" r="35" fill="none" stroke="var(--border)" stroke-width="18"/>';
+  const circumference = 2*Math.PI*35;
+  let offset = 0;
+  const legend = document.getElementById('donut-legend');
+  legend.innerHTML = '';
+
+  Object.entries(byType).sort((a,b)=>b[1]-a[1]).forEach(([type,cnt])=>{
+    const pct = cnt/total;
+    const dash = pct*circumference;
+    const color = colors[type]||'#999';
+    const seg = document.createElementNS('http://www.w3.org/2000/svg','circle');
+    seg.setAttribute('cx','50'); seg.setAttribute('cy','50'); seg.setAttribute('r','35');
+    seg.setAttribute('fill','none'); seg.setAttribute('stroke',color);
+    seg.setAttribute('stroke-width','18');
+    seg.setAttribute('stroke-dasharray',`${dash} ${circumference-dash}`);
+    seg.setAttribute('stroke-dashoffset',`${circumference/4-offset}`);
+    svg.appendChild(seg);
+    offset += dash;
+
+    legend.innerHTML += `<div class="legend-item">
+      <div class="legend-dot" style="background:${color}"></div>
+      <div class="legend-name">${type}</div>
+      <div class="legend-pct">${(pct*100).toFixed(0)}%</div>
+    </div>`;
+  });
+}
+
+function renderDashAlerts(){
+  const tbody = document.getElementById('dash-alerts');
+  tbody.innerHTML = '';
+  alertsDB.slice(0,8).forEach(a=>{
+    tbody.innerHTML += alertRow(a, false);
+  });
+}
+
+function renderFullAlerts(filterType='all'){
+  const tbody = document.getElementById('full-alerts');
+  tbody.innerHTML = '';
+  const filtered = filterType==='all' ? alertsDB : alertsDB.filter(a=>a.attack_type===filterType);
+  document.getElementById('alert-count').textContent = `${filtered.length} alertes affichées`;
+  filtered.slice(0,60).forEach(a=>{tbody.innerHTML += alertRow(a, true);});
+}
+
+function alertRow(a, full){
+  const sevBadge = `<span class="badge ${a.severity}">${a.severity.toUpperCase()}</span>`;
+  const atk = `<span style="color:${ATK_COLOR[a.attack_type]||'var(--cyan)'};font-weight:700;font-family:'Share Tech Mono',monospace">${a.attack_type}</span>`;
+  const conf = `<div class="conf-bar"><div class="conf-track"><div class="conf-fill" style="width:${a.confidence*100}%;background:${a.confidence>0.9?'var(--green)':'var(--orange)'}"></div></div><span class="conf-num">${(a.confidence*100).toFixed(0)}%</span></div>`;
+  const blkBtn = `<button class="btn-block${a.blocked?' blocked':''}" onclick="blockAlert(${a.id})">${a.blocked?'✓ BLOQUÉ':'BLOQUER'}</button>`;
+
+  if(full){
+    return `<tr>
+      <td style="color:var(--text3);font-family:'Share Tech Mono',monospace">#${a.id}</td>
+      <td style="font-family:'Share Tech Mono',monospace;font-size:.72rem">${a.timestamp}</td>
+      <td class="ip-text">${a.ip_source}</td>
+      <td>${atk}</td><td>${sevBadge}</td><td>${conf}</td>
+      <td style="font-family:'Share Tech Mono',monospace">${a.nb_conn}</td>
+      <td style="color:var(--text2);font-family:'Share Tech Mono',monospace">${a.protocol}</td>
+      <td>${blkBtn}</td>
+    </tr>`;
+  }
+  return `<tr>
+    <td style="color:var(--text3);font-family:'Share Tech Mono',monospace">#${a.id}</td>
+    <td style="font-family:'Share Tech Mono',monospace;font-size:.72rem">${a.timestamp}</td>
+    <td class="ip-text">${a.ip_source}</td>
+    <td>${atk}</td><td>${sevBadge}</td><td>${conf}</td>
+    <td style="font-family:'Share Tech Mono',monospace">${a.nb_conn}</td>
+  </tr>`;
+}
+
+function renderFeatureImportance(){
+  const el = document.getElementById('feat-importance');
+  el.innerHTML = '';
+  const max = Math.max(...Object.values(FEAT_IMPORTANCE));
+  Object.entries(FEAT_IMPORTANCE).sort((a,b)=>b[1]-a[1]).forEach(([name,val])=>{
+    const pct = (val/max)*100;
+    el.innerHTML += `<div class="feat-row">
+      <div class="feat-name">${name}</div>
+      <div class="feat-track"><div class="feat-fill" style="width:${pct}%;transition:width 1s ease"></div></div>
+      <div class="feat-val">${(val*100).toFixed(1)}%</div>
+    </div>`;
+  });
+}
+
+// ══════════════════════════════════════════════════════
+//  INTERACTIONS
+// ══════════════════════════════════════════════════════
+function showSection(name, el){
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('s-'+name).classList.add('active');
+  if(el) el.classList.add('active');
+  if(name==='alerts') renderFullAlerts();
+  if(name==='model') renderFeatureImportance();
+}
+
+function filterAlerts(type, btn){
+  document.querySelectorAll('.ftab').forEach(t=>t.classList.remove('active'));
+  btn.classList.add('active');
+  renderFullAlerts(type);
+}
+
+function blockAlert(id){
+  const a = alertsDB.find(x=>x.id===id);
+  if(a && !a.blocked){
+    a.blocked = 1;
+    toast(`IP ${a.ip_source} bloquée avec succès`, 't-ok', '🔒');
+    renderFullAlerts();
+  }
+}
+
+function analyzeManual(){
+  const feat = [
+    +document.getElementById('f-duration').value||2.5,
+    +document.getElementById('f-protocol').value||0,
+    +document.getElementById('f-bytes-sent').value||500,
+    +document.getElementById('f-bytes-recv').value||1200,
+    +document.getElementById('f-nb-conn').value||4,
+    +document.getElementById('f-error').value||0.02,
+    +document.getElementById('f-same-ip').value||2,
+    +document.getElementById('f-port').value||443,
+  ];
+  showResult(feat, null);
+}
+
+function simulateAttack(){
+  const type = document.getElementById('sim-type').value;
+  const chosen = type==='random' ? ['dos','intrusion','malware','phishing','normal'][rnd(0,4)] : type;
+  const base = ATTACK_PROFILES[chosen];
+  const feat = base.map((v,i)=>+(v*(1+rndF(-0.08,0.08))).toFixed(2));
+  showResult(feat, chosen);
+}
+
+function showResult(feat, simType){
+  const {pred,probs,label,conf} = mlPredict(feat);
+  const sev = SEVERITY[label];
+  const color = ATK_COLOR[label];
+
+  document.getElementById('r-pred').textContent = label;
+  document.getElementById('r-pred').style.color = color;
+  document.getElementById('r-badge').innerHTML = `<span class="badge ${sev}">${sev.toUpperCase()}</span>`;
+  document.getElementById('r-conf').textContent = (conf*100).toFixed(1)+'%';
+  document.getElementById('r-conf').style.color = conf>0.9?'var(--green)':'var(--orange)';
+  document.getElementById('r-sev').textContent = sev.toUpperCase();
+  document.getElementById('r-sev').style.color = SEV_COLOR[sev];
+  const isoScore = feat[4]>300||feat[5]>0.5 ? -1 : 1;
+  document.getElementById('r-iso').textContent = isoScore===-1?'⚠ ANOMALIE':'✓ Normal';
+  document.getElementById('r-iso').style.color = isoScore===-1?'var(--red)':'var(--green)';
+
+  const probsEl = document.getElementById('r-probs');
+  probsEl.innerHTML = '<div style="font-size:.65rem;color:var(--text3);letter-spacing:2px;font-family:\'Share Tech Mono\',monospace;margin-bottom:8px">DISTRIBUTION DES PROBABILITÉS</div>';
+  const pColors = ["#22c55e","#ef4444","#f97316","#a855f7","#eab308"];
+  Object.entries(LABELS).forEach(([i,lbl])=>{
+    const p = probs[i];
+    probsEl.innerHTML += `<div class="prob-row">
+      <div class="prob-name">${lbl}</div>
+      <div class="prob-track"><div class="prob-fill" style="width:${p*100}%;background:${pColors[i]}"></div></div>
+      <div class="prob-pct">${(p*100).toFixed(1)}%</div>
+    </div>`;
+  });
+
+  const box = document.getElementById('result-box');
+  box.classList.remove('show');
+  void box.offsetWidth;
+  box.classList.add('show');
+
+  // Save to DB if attack
+  if(label !== 'Normal' || isoScore===-1){
+    const ip = randIP();
+    alertsDB.unshift({
+      id:nextId++,
+      timestamp:new Date().toISOString().slice(0,19).replace('T',' '),
+      ip_source:ip, attack_type:label,
+      severity:sev, confidence:+conf.toFixed(3),
+      bytes_sent:+feat[2].toFixed(1), nb_conn:Math.round(feat[4]),
+      protocol:['TCP','UDP','ICMP'][Math.round(feat[1])%3], blocked:0
+    });
+    toast(`${label} détecté depuis ${ip} (${(conf*100).toFixed(0)}%)`, 't-'+sev, sev==='critical'?'🚨':'⚠️');
+    renderStats(); renderDashAlerts(); renderDonut(); renderTrendChart();
+  }
+}
+
+// ══════════════════════════════════════════════════════
+//  TOAST
+// ══════════════════════════════════════════════════════
+function toast(msg, cls, icon='ℹ'){
+  const el = document.createElement('div');
+  el.className = `toast-item ${cls}`;
+  el.innerHTML = `<span class="toast-icon">${icon}</span><span class="toast-msg">${msg}</span>`;
+  document.getElementById('toast').prepend(el);
+  setTimeout(()=>el.remove(), 4500);
+}
+
+// ══════════════════════════════════════════════════════
+//  CLOCK & AUTO-REFRESH
+// ══════════════════════════════════════════════════════
+function updateClock(){
+  const now = new Date();
+  document.getElementById('clock').textContent =
+    now.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// Auto-simulate background threat every 18s
+setInterval(()=>{
+  if(Math.random()<0.6){
+    const types = ['dos','intrusion','malware','phishing'];
+    const t = types[rnd(0,3)];
+    const base = ATTACK_PROFILES[t];
+    const feat = base.map(v=>+(v*(1+rndF(-0.1,0.1))).toFixed(2));
+    const {label,conf} = mlPredict(feat);
+    const sev = SEVERITY[label];
+    const ip = randIP();
+    alertsDB.unshift({
+      id:nextId++,
+      timestamp:new Date().toISOString().slice(0,19).replace('T',' '),
+      ip_source:ip, attack_type:label, severity:sev,
+      confidence:+conf.toFixed(3), bytes_sent:+feat[2].toFixed(1),
+      nb_conn:Math.round(feat[4]), protocol:['TCP','UDP','ICMP'][rnd(0,2)], blocked:0
+    });
+    toast(`Nouvelle menace : ${label} depuis ${ip}`, 't-'+sev, '🛡');
+    renderStats(); renderDashAlerts(); renderDonut(); renderTrendChart();
+  }
+}, 18000);
+
+// ══════════════════════════════════════════════════════
+//  INIT
+// ══════════════════════════════════════════════════════
+renderStats();
+renderTrendChart();
+renderDonut();
+renderDashAlerts();
+renderFeatureImportance();
+</script>
+</body>
+</html>
